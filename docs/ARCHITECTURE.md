@@ -1,192 +1,127 @@
-# ✅ **Yes, That's Perfect Markdown Preview!**
+# Architecture Documentation
 
-That's exactly what you should see! The preview is rendering the markdown correctly:
+## Overview
 
-✅ **Headers** (`#`, `##`, `###`) are showing in different sizes  
-✅ **Code blocks** (```bash```) are syntax-highlighted  
-✅ **Blockquotes** (`>`) are styled with green italic text  
-✅ **Bold** (`**text**`) and *italic* are working  
-✅ **Horizontal rules** (`---`) are showing  
+SudokuConsole is a command-line Sudoku game built with a layered architecture and TDD-focused development.
 
-The dark theme makes it look professional. This is how it will appear on GitHub, GitLab, or any markdown viewer.
+The application separates:
+- Domain logic
+- Application services
+- User commands
+- Console UI
+- Game orchestration
 
----
-
-## 📝 **Next: Create ARCHITECTURE.md**
-
-This will be a more technical deep-dive for senior engineers reviewing your code.
-
-Create `docs/ARCHITECTURE.md`:
-
-```markdown
-# Architecture & Design Documentation
-
-**Project**: Sudoku Console Game  
-**Language**: C# (.NET 8.0)  
-**Architecture**: Clean Architecture with Domain-Driven Design  
-**Last Updated**: [Current Date]
-
----
-
-## 🎯 Architecture Overview
-
-This application follows **Clean Architecture** principles with clear separation between domain logic, application use cases, and infrastructure concerns.
-
-### Dependency Flow
-
-```
-Program.cs
-    ↓
-Presentation (GameController)
-    ↓
-Application (Commands, Services)
-    ↓
-Domain (Grid, Cell, Coordinate)
-    
-Infrastructure (ConsoleDisplay) → Application (via interfaces)
+```text
+┌─────────────────────────────────────────┐
+│   Presentation (GameController)         │
+├─────────────────────────────────────────┤
+│   Infrastructure (ConsoleDisplay)       │
+├─────────────────────────────────────────┤
+│   Application (Commands, Services)      │
+├─────────────────────────────────────────┤
+│   Domain (Grid, Cell, Coordinate)       │
+└─────────────────────────────────────────┘
 ```
 
-**Key Principle**: Dependencies point **inward**. The domain has zero dependencies on outer layers.
+Dependencies flow inward. Domain models do not depend on UI or infrastructure code.
 
----
+## Domain Layer
 
-## 📦 Layer Breakdown
+### Coordinate
 
-### 1. Domain Layer (`Domain/Models/`)
+Coordinate is an immutable value object representing a Sudoku cell position.
 
-**Responsibility**: Core business entities and rules. No dependencies on frameworks or external libraries.
+Responsibilities:
+- Convert user input such as `A1` into zero-based indexes
+- Validate row and column bounds
+- Provide display-friendly formatting
 
-#### **Coordinate.cs** - Value Object
-```csharp
-public readonly record struct Coordinate(int Row, int Column)
-```
+### Cell
 
-**Purpose**: Immutable coordinate representation  
-**Design Decisions**:
-- `readonly record struct` for performance and immutability
-- Parse method for "A1" → (0, 0) conversion
-- Validation in constructor (fail-fast)
-- ToString for display ("A1")
+Cell represents one Sudoku grid cell.
 
-**Why Value Object?**
-- Prevents primitive obsession
-- Type-safe (can't swap row/column)
-- Self-validating
+Responsibilities:
+- Store a value from 1–9 or empty state
+- Track whether the cell is pre-filled
+- Prevent modification of pre-filled cells
 
----
+### Grid
 
-#### **Cell.cs** - Entity
-```csharp
-public class Cell
-{
-    public int? Value { get; private set; }
-    public bool IsPreFilled { get; }
-    public bool IsEmpty => !Value.HasValue;
-}
-```
+Grid is the aggregate root for the 9×9 Sudoku board.
 
-**Purpose**: Represents a single Sudoku cell  
-**Invariants**:
-- Value must be 1-9 or null
-- Pre-filled cells cannot be modified (enforced by `SetValue()` and `Clear()`)
+Responsibilities:
+- Store all cells
+- Read and update cells by coordinate
+- Clear editable cells
+- Determine whether the grid is complete
 
-**Design Decisions**:
-- `int?` for empty cells (type-safe, clear intent)
-- `IsPreFilled` is read-only after construction (immutable flag)
-- Business logic in domain entity (SetValue validates pre-filled status)
+## Application Services
 
----
+### PuzzleGenerator
 
-#### **Grid.cs** - Aggregate Root
-```csharp
-public class Grid
-{
-    private readonly Cell[,] _cells;
-    public bool IsComplete { get; }
-}
-```
+Generates a complete valid Sudoku solution and derives a playable puzzle from it.
 
-**Purpose**: Manages the 9×9 Sudoku board  
-**Responsibilities**:
-- Coordinate validation (via `Coordinate`)
-- Cell access and modification
-- Completeness checking
+Current difficulty mapping:
 
-**Why Aggregate Root?**
-- Enforces invariants (can't have invalid grid state)
-- Encapsulates collection of cells
-- Single entry point for grid operations
+| Difficulty | Pre-filled Cells |
+|-----------|------------------|
+| Easy      | 40               |
+| Medium    | 35               |
+| Hard      | 30               |
 
----
+The generator uses transformations of a known valid Sudoku pattern:
+- Digit permutation
+- Row swaps within bands
+- Column swaps within stacks
 
-### 2. Application Layer (`Application/`)
+This approach is fast and produces valid solutions by construction.
 
-**Responsibility**: Use cases and business logic orchestration
+### SudokuValidator
 
-#### **Services** (`Application/Services/`)
+Validates the current grid for rule violations.
 
-##### **PuzzleGenerator**
-**Algorithm**: Randomized solution + strategic clue selection
+Validation order:
+1. Rows
+2. Columns
+3. 3×3 subgrids
 
-**Steps**:
-1. Generate complete valid solution:
-   - Start with mathematical base pattern
-   - Apply digit permutation (9! possibilities)
-   - Shuffle rows within bands (0-2, 3-5, 6-8)
-   - Shuffle columns within stacks
-2. Select 30 clues:
-   - Guarantee ≥1 per row and column
-   - Random fill remaining slots
+The validator returns the first violation found, matching the original specification examples.
 
-**Time Complexity**:
-- Solution generation: O(1) - transformations of base pattern
-- Clue selection: O(81) - iterate grid twice
-- **Total: < 50ms average**
+### HintProvider
 
-**Why this approach?**
-- Fast (no backtracking needed)
-- Valid by construction (transformations preserve Sudoku rules)
-- Sufficient variety (~16 billion possible solutions)
+Provides one correct value for an empty cell by referencing the generated solution.
 
----
+The hint provider does not mutate the puzzle.
 
-##### **SudokuValidator**
-**Algorithm**: Set-based duplicate detection
+### LeaderboardService
 
-**Validation Order** (fail-fast):
-1. Check all 9 rows
-2. Check all 9 columns  
-3. Check all 9 subgrids
+Stores completed game scores locally in `leaderboard.json`.
 
-**Time Complexity**: O(243) worst-case (9 rows × 9 cells + 9 cols × 9 cells + 9 subgrids × 9 cells)  
-**Space Complexity**: O(9) - HashSet for seen values
+Scores include:
+- Player name
+- Difficulty
+- Solve time
+- Mistake count
+- Completion timestamp
 
-**Why this order?**
-- Matches spec examples (row violations reported first)
-- Row checks are simplest (linear scan)
+Scores are ranked by:
+1. Fastest solve time
+2. Fewest mistakes
 
----
+The leaderboard is local-only and does not sync online.
 
-##### **HintProvider**
-**Algorithm**: Random empty cell selection
+### Difficulty
 
-**Steps**:
-1. Collect all empty cell coordinates
-2. Select random coordinate
-3. Return solution value for that cell
+`Difficulty` represents the selectable puzzle difficulty (Easy, Medium, Hard) and controls the number of pre-filled cells used by `PuzzleGenerator`.
 
-**Time Complexity**: O(81) - scan grid once  
-**Why random?**
-- Simple, fair, unpredictable
-- Strategic hints (naked singles, etc.) out of scope
+### GameScore
 
----
+`GameScore` is an immutable value object capturing a completed game result: player name, difficulty, solve time, mistake count, and completion timestamp.
 
-#### **Commands** (`Application/Commands/`)
+## Commands
 
-**Pattern**: Command Pattern
+The application uses the Command Pattern for user actions.
 
-**Structure**:
 ```csharp
 public interface ICommand
 {
@@ -194,228 +129,180 @@ public interface ICommand
 }
 ```
 
-**Implementations**:
-- `PlaceNumberCommand` - delegates to `Grid.SetCell()`
-- `ClearCellCommand` - delegates to `Grid.ClearCell()`
-- `HintCommand` - delegates to `IHintProvider`
-- `CheckCommand` - delegates to `ISudokuValidator`
-- `QuitCommand` - returns quit flag
-- `InvalidCommand` - error handling
+Implemented commands:
+- `PlaceNumberCommand`
+- `ClearCellCommand`
+- `HintCommand`
+- `CheckCommand`
+- `QuitCommand`
+- `InvalidCommand`
 
-**Why Command Pattern?**
-- **Encapsulation**: Each command is self-contained
-- **Testability**: Commands tested in isolation
-- **Extensibility**: New commands = new class (OCP)
-- **Undo support**: Easy to add command history later
+### CommandFactory
 
-**CommandFactory**:
-- Parses user input strings
-- Returns appropriate command instance
-- Handles invalid input gracefully
+`CommandFactory` converts raw console input into command objects.
 
----
+Examples:
 
-### 3. Infrastructure Layer (`Infrastructure/UI/`)
+| Input      | Command              |
+|------------|----------------------|
+| `A3 4`     | `PlaceNumberCommand` |
+| `C5 clear` | `ClearCellCommand`   |
+| `hint`     | `HintCommand`        |
+| `check`    | `CheckCommand`       |
+| `quit`     | `QuitCommand`        |
 
-**Responsibility**: External concerns (I/O, frameworks, databases)
+This keeps input parsing separate from command execution.
 
-#### **ConsoleDisplay**
-**Purpose**: Renders game state and reads user input
+## Infrastructure Layer
 
-**Why abstracted via interface?**
-- Testable (can mock display)
-- Swappable (could add GUI later)
-- Domain doesn't depend on Console API
+### ConsoleDisplay
 
----
+Handles all console input/output.
 
-### 4. Presentation Layer (`Presentation/`)
+Responsibilities:
+- Display welcome message
+- Display Sudoku grid
+- Prompt for difficulty
+- Read commands
+- Display messages
+- Display win/game-over messages
+- Display leaderboard
 
-#### **GameController**
-**Responsibility**: Orchestrate game flow
+Keeping console operations behind `IConsoleDisplay` makes the game controller easier to reason about and keeps UI concerns isolated.
 
-**Main Loop**:
-```
-while (play again):
-    1. Generate puzzle
-    2. Display grid
-    3. while (not quit and not won):
-        a. Read command
-        b. Execute command
-        c. Display result
-        d. Check win condition
-    4. Prompt replay
-```
+## Presentation Layer
 
-**Why separate controller?**
-- Single Responsibility (orchestration only)
-- Testable game flow
-- Easy to add features (save/load, difficulty selection)
+### GameController
 
----
+Coordinates the main game flow.
 
-## 🎨 Design Patterns Catalog
+Responsibilities:
+- Show welcome message
+- Ask user to select difficulty
+- Generate puzzle and solution
+- Start solve timer
+- Read and execute commands
+- Track mistakes from failed `check` validations
+- Detect win condition
+- Save completed score to local leaderboard
+- Display leaderboard
+- Prompt to play again
 
-| Pattern | Where Used | Benefit |
-|---------|------------|---------|
-| **Value Object** | Coordinate | Immutability, type safety |
-| **Entity** | Cell | Business logic encapsulation |
-| **Aggregate Root** | Grid | Consistency boundary |
-| **Command** | All user actions | Extensibility, testability |
-| **Factory** | CommandFactory | Centralized creation logic |
-| **Strategy** | Validation rules | Interchangeable algorithms |
-| **Dependency Injection** | All services | Loose coupling, testability |
+The controller depends on abstractions:
+- `IConsoleDisplay`
+- `IPuzzleGenerator`
+- `ISudokuValidator`
+- `IHintProvider`
+- `ILeaderboardService`
 
----
+## Validation Strategy
 
-## 🧪 Testing Strategy
+The game uses optimistic validation.
 
-### Test Pyramid
+This means:
+- User moves are accepted if the cell is editable and the value is 1–9.
+- Sudoku rule violations are reported when the player runs `check`.
 
-```
-        /\
-       /  \        E2E Tests (Manual)
-      /────\       
-     /      \      Integration Tests (0 - reserved)
-    /────────\     
-   /          \    Unit Tests (153)
-  /────────────\   
-```
+This matches the original problem examples.
 
-### Unit Test Coverage
+Mistakes are counted when:
+- The player runs `check`
+- The validator finds a rule violation
 
-**Domain Layer**: 90 tests
-- Coordinate: Parsing, validation, ToString
-- Cell: SetValue, Clear, pre-filled protection
-- Grid: GetCell, SetCell, IsComplete
+## Persistence
 
-**Application Layer**: 63 tests
-- Services: Generation, validation, hints
-- Commands: All 5 commands + factory parsing
+The application only persists completed leaderboard scores.
 
-**Coverage Metrics**:
-- Line coverage: ~91%
-- Branch coverage: ~87%
-- Critical paths: 100%
+Runtime file:
 
-### Test Naming Convention
-```csharp
-[Test]
-public void MethodName_Scenario_ExpectedBehavior()
+```text
+leaderboard.json
 ```
 
-Example: `Parse_InvalidCoordinate_ThrowsArgumentException`
+The app does not persist unfinished game state.
 
----
+## Design Patterns Used
 
-## 🔐 SOLID Principles Demonstration
+| Pattern                     | Usage                                             | Reason                                          |
+|-----------------------------|---------------------------------------------------|-------------------------------------------------|
+| Command Pattern             | User actions                                      | Keeps actions testable and extensible           |
+| Factory Pattern             | `CommandFactory`                                  | Centralizes input parsing                       |
+| Value Object                | `Coordinate`, `GameScore`                         | Prevents primitive obsession                    |
+| Manual Dependency Injection | `Program.cs`                                      | Keeps app lightweight without DI container      |
+| Service Abstraction         | Validator, Generator, HintProvider, Leaderboard   | Supports testability and separation of concerns |
 
-### Single Responsibility Principle (SRP)
-✅ Each class has one reason to change:
-- `Coordinate`: Coordinate parsing/validation
-- `Grid`: Grid state management
-- `SudokuValidator`: Validation logic
-- `CommandFactory`: Input parsing
+## Testing Strategy
 
-### Open/Closed Principle (OCP)
-✅ Open for extension, closed for modification:
-- Adding new command: Create new class implementing `ICommand`
-- No need to modify `GameController` or `CommandFactory` switch
+The project includes unit tests for:
+- Domain models
+- Puzzle generation
+- Validation
+- Hint provider
+- Commands
+- Command parsing
+- Difficulty-based clue counts
 
-### Liskov Substitution Principle (LSP)
-✅ All implementations honor their interfaces:
-- Any `ICommand` can be executed
-- Any `IConsoleDisplay` can render the game
+Current test count:
 
-### Interface Segregation Principle (ISP)
-✅ No client forced to depend on unused methods:
-- `ICommand`: Single method (`Execute`)
-- `IHintProvider`: Single method (`GetHint`)
-
-### Dependency Inversion Principle (DIP)
-✅ Depend on abstractions:
-- `GameController` depends on `IPuzzleGenerator`, not `PuzzleGenerator`
-- Enables testing with mocks/stubs
-
----
-
-## 📊 Algorithm Analysis
-
-### Puzzle Generation
-
-**Transformation-Based Approach**:
-```
-Base pattern: O(81) to generate
-Digit permutation: O(81) to remap
-Row swaps (3 bands): O(243) worst-case
-Column swaps (3 stacks): O(243) worst-case
-Total: O(567) ≈ O(1) constant time
+```text
+156 passing tests
 ```
 
-**Alternative (Not Used): Backtracking**
-```
-Time: O(9^81) worst-case exponential
-Average with heuristics: ~50-200ms
-Rejected because: Transformation approach is faster and simpler
+## Known Limitations
+
+The following are intentionally out of scope:
+- Unique-solution verification
+- Advanced human-solving difficulty rating
+- Strategic hint explanations
+- Multiple violation reporting
+- Undo/redo
+- Notes/pencil marks
+- Save/load unfinished game state
+- Online leaderboard/cloud sync
+- Color-coded console UI
+- Full dependency injection container
+- Structured logging infrastructure
+
+## Future Enhancements
+
+Potential future improvements:
+- Online leaderboard
+- Save/load in-progress games
+- Undo/redo
+- Notes/pencil marks
+- Advanced solving hints
+- Human-solving difficulty analysis
+- Color-coded display
 ```
 
 ---
 
-### Validation
+### Also fix the trailing PowerShell block (if you keep it as a separate "after updating" note)
 
-**Hash Set Approach**:
-```
-For each row (9):
-    For each cell (9):
-        if value in seen: FAIL
-        else: add to seen
-    Clear seen
-Repeat for columns and subgrids
+Your original ended with an unclosed ``` ``powershell `` fence. Correct version:
 
-Time: O(3 × 9 × 9) = O(243) = O(1) constant
-Space: O(9) for hash set
-```
-
+````markdown
 ---
 
-## 🚧 Known Limitations & Future Work
+## After updating architecture
 
-### Current Limitations
-1. **Solution uniqueness not verified**
-   - Clue removal is random
-   - Multiple solutions possible
-   - **Impact**: Low (30 clues usually unique)
+Run:
 
-2. **No difficulty classification**
-   - All puzzles have exactly 30 clues
-   - **Impact**: Medium (some easier than others)
-
-3. **Console-only UI**
-   - No persistence
-   - No multiplayer
-   - **Impact**: Low (meets requirements)
-
-### Potential Improvements
-- [ ] Add unique solution verification (backtracking counter)
-- [ ] Implement difficulty levels (clue count + pattern analysis)
-- [ ] Add undo/redo (command history pattern)
-- [ ] Persist game state (JSON serialization)
-- [ ] Web API layer (ASP.NET Core)
-
----
-
-## 📚 References
-
-- **Clean Architecture** - Robert C. Martin
-- **Domain-Driven Design** - Eric Evans
-- **Design Patterns** - Gang of Four
-- **C# Coding Conventions** - Microsoft Docs
-
----
-
-**Document Version**: 1.0  
-**Last Review**: 24/10/26
+```powershell
+dotnet test
 ```
 
----
+Then commit with:
 
+```bash
+git add docs/ARCHITECTURE.md README.md README.txt .gitignore src tests .gitlab-ci.yml
+git commit -m "Update documentation for gameplay enhancements"
+```
+
+If you are committing all pending feature code together, use:
+
+```bash
+git add .
+git restore --staged leaderboard.json 2>$null
+git commit -m "Add difficulty, timer, mistakes, and local leaderboard"
+```
