@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SudokuConsole/SudokuConsole.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SudokuConsole.Tests/SudokuConsole.Tests.csproj" />
+  </Folder>
+</Solution>
