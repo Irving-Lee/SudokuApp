@@ -1,4 +1,5 @@
 using SudokuConsole.Domain.Models;
+using SudokuConsole.Application.Services;
 
 namespace SudokuConsole.Infrastructure.UI;
 
@@ -71,4 +72,40 @@ public sealed class ConsoleDisplay : IConsoleDisplay
         Console.Clear();
         return true;
     }
+
+    /// <inheritdoc />
+    public Difficulty SelectDifficulty()
+    {
+        Console.WriteLine("Select difficulty:");
+        Console.WriteLine("1. Easy (40 clues)");
+        Console.WriteLine("2. Medium (35 clues)");
+        Console.WriteLine("3. Hard (30 clues)");
+        Console.WriteLine();
+        Console.Write("Enter choice (1-3): ");
+
+        while (true)
+        {
+            var input = Console.ReadLine()?.Trim().ToLowerInvariant();
+
+            switch (input)
+            {
+                case "1":
+                case "easy":
+                    return Difficulty.Easy;
+
+                case "2":
+                case "medium":
+                    return Difficulty.Medium;
+
+                case "3":
+                case "hard":
+                    return Difficulty.Hard;
+
+                default:
+                    Console.Write("Invalid choice. Enter 1, 2, or 3: ");
+                    break;
+            }
+        }
+    }
+
 }

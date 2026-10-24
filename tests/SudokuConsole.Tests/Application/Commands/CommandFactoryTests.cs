@@ -18,7 +18,7 @@ public class CommandFactoryTests
     public void SetUp()
     {
         var generator = new PuzzleGenerator();
-        (_puzzle, _solution) = generator.Generate();
+        (_puzzle, _solution) = generator.Generate(Difficulty.Hard);
         _validator = new SudokuValidator();
         _hintProvider = new HintProvider();
         _factory = new CommandFactory(_puzzle, _solution, _validator, _hintProvider);

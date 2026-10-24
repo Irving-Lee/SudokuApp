@@ -11,13 +11,90 @@ public sealed class PuzzleGenerator : IPuzzleGenerator
     private const int PrefilledCellCount = 30;
 
     /// <inheritdoc />
-    public (Grid Puzzle, Grid Solution) Generate()
+    private static Grid CreatePuzzle(Grid solution, Difficulty difficulty)
     {
-        var solution = CreateCompleteSolution();
-        var puzzle = CreatePuzzle(solution);
+        var puzzle = new Grid();
+        var random = new Random();
+        var selected = new HashSet<(int Row, int Column)>();
+        var prefilledCellCount = GetPrefilledCellCount(difficulty);
 
-        return (puzzle, solution);
+        // Step 1: Guarantee one clue per row
+        for (var row = 0; row < GridSize; row++)
+        {
+            var column = random.Next(GridSize);
+            selected.Add((row, column));
+        }
+
+        // Step 2: Guarantee one clue per column (if not already covered)
+        for (var column = 0; column < GridSize; column++)
+        {
+            var hasClue = false;
+
+            for (var row = 0; row < GridSize; row++)
+            {
+                if (selected.Contains((row, column)))
+                {
+                    hasClue = true;
+                    break;
+                }
+            }
+
+            if (!hasClue)
+            {
+                var availableRows = new List<int>();
+
+                for (var row = 0; row < GridSize; row++)
+                {
+                    if (!selected.Contains((row, column)))
+                    {
+                        availableRows.Add(row);
+                    }
+                }
+
+                if (availableRows.Count > 0)
+                {
+                    var randomRow = availableRows[random.Next(availableRows.Count)];
+                    selected.Add((randomRow, column));
+                }
+            }
+        }
+
+        // Step 3: Fill remaining slots randomly until target clue count is reached
+        if (selected.Count < prefilledCellCount)
+        {
+            var allCoordinates = new List<(int Row, int Column)>();
+
+            for (var row = 0; row < GridSize; row++)
+            {
+                for (var column = 0; column < GridSize; column++)
+                {
+                    if (!selected.Contains((row, column)))
+                    {
+                        allCoordinates.Add((row, column));
+                    }
+                }
+            }
+
+            Shuffle(allCoordinates, random);
+
+            var needed = prefilledCellCount - selected.Count;
+            for (var index = 0; index < needed && index < allCoordinates.Count; index++)
+            {
+                selected.Add(allCoordinates[index]);
+            }
+        }
+
+        // Step 4: Place the selected clues
+        foreach (var (row, column) in selected)
+        {
+            var coordinate = new Coordinate(row, column);
+            var value = solution.GetCell(coordinate).Value!.Value;
+            puzzle.SetPrefilledCell(coordinate, value);
+        }
+
+        return puzzle;
     }
+
 
     private static Grid CreateCompleteSolution()
     {
@@ -201,4 +278,19 @@ public sealed class PuzzleGenerator : IPuzzleGenerator
         }
     }
 
+    private static int GetPrefilledCellCount(Difficulty difficulty) => difficulty switch
+    {
+        Difficulty.Easy => 40,
+        Difficulty.Medium => 35,
+        Difficulty.Hard => 30,
+        _ => throw new ArgumentOutOfRangeException(nameof(difficulty), difficulty, "Unsupported difficulty level.")
+    };
+
+    public (Grid Puzzle, Grid Solution) Generate(Difficulty difficulty)
+    {
+        var solution = CreateCompleteSolution();
+        var puzzle = CreatePuzzle(solution, difficulty);
+
+        return (puzzle, solution);
+    }
 }

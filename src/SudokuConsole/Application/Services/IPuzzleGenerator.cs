@@ -10,5 +10,5 @@ public interface IPuzzleGenerator
     /// <summary>
     /// Generates a puzzle with exactly 30 pre-filled cells and its complete solution.
     /// </summary>
-    (Grid Puzzle, Grid Solution) Generate();
+    (Grid Puzzle, Grid Solution) Generate(Difficulty difficulty);
 }

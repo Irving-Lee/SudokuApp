@@ -14,7 +14,7 @@ public class PuzzleGeneratorTests
         var generator = new PuzzleGenerator();
 
         // Act
-        var generated = generator.Generate();
+        var generated = generator.Generate(Difficulty.Hard);
 
         // Assert
         Assert.That(generated.Puzzle, Is.Not.Null);
@@ -67,7 +67,7 @@ public class PuzzleGeneratorTests
         var generator = new PuzzleGenerator();
 
         // Act
-        var generated = generator.Generate();
+        var generated = generator.Generate(Difficulty.Hard);
 
         // Assert
         for (var row = 0; row < 9; row++)
@@ -99,7 +99,7 @@ public class PuzzleGeneratorTests
         var validator = new SudokuValidator();
 
         // Act
-        var generated = generator.Generate();
+        var generated = generator.Generate(Difficulty.Hard);
         var result = validator.Validate(generated.Solution);
 
         // Assert
@@ -113,7 +113,7 @@ public class PuzzleGeneratorTests
         var generator = new PuzzleGenerator();
 
         // Act
-        var generated = generator.Generate();
+        var generated = generator.Generate(Difficulty.Hard);
 
         // Assert
         for (var index = 0; index < 9; index++)
@@ -147,7 +147,7 @@ public class PuzzleGeneratorTests
         var solutions = new List<Grid>();
         for (var i = 0; i < 5; i++)
         {
-            solutions.Add(generator.Generate().Solution);
+            solutions.Add(generator.Generate(Difficulty.Hard).Solution);
         }
 
         // Assert - At least one solution should differ from the first
@@ -186,5 +186,48 @@ public class PuzzleGeneratorTests
 
         return true;
     }
+
+    [Test]
+    public void Generate_EasyDifficulty_ReturnsPuzzleWith40PrefilledCells()
+    {
+        // Arrange
+        var generator = new PuzzleGenerator();
+
+        // Act
+        var generated = generator.Generate(Difficulty.Easy);
+
+        // Assert
+        Assert.That(CountPrefilledCells(generated.Puzzle), Is.EqualTo(40));
+        Assert.That(CountFilledCells(generated.Solution), Is.EqualTo(81));
+    }
+
+    [Test]
+    public void Generate_MediumDifficulty_ReturnsPuzzleWith35PrefilledCells()
+    {
+        // Arrange
+        var generator = new PuzzleGenerator();
+
+        // Act
+        var generated = generator.Generate(Difficulty.Medium);
+
+        // Assert
+        Assert.That(CountPrefilledCells(generated.Puzzle), Is.EqualTo(35));
+        Assert.That(CountFilledCells(generated.Solution), Is.EqualTo(81));
+    }
+
+    [Test]
+    public void Generate_HardDifficulty_ReturnsPuzzleWith30PrefilledCells()
+    {
+        // Arrange
+        var generator = new PuzzleGenerator();
+
+        // Act
+        var generated = generator.Generate(Difficulty.Hard);
+
+        // Assert
+        Assert.That(CountPrefilledCells(generated.Puzzle), Is.EqualTo(30));
+        Assert.That(CountFilledCells(generated.Solution), Is.EqualTo(81));
+    }
+
 
 }

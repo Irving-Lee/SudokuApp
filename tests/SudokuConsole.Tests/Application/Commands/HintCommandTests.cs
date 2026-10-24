@@ -14,7 +14,7 @@ public class HintCommandTests
         // Arrange
         var generator = new PuzzleGenerator();
         var hintProvider = new HintProvider();
-        var (puzzle, solution) = generator.Generate();
+        var (puzzle, solution) = generator.Generate(Difficulty.Hard);
 
         var command = new HintCommand(puzzle, solution, hintProvider);
 
@@ -64,7 +64,7 @@ public class HintCommandTests
         // Arrange
         var generator = new PuzzleGenerator();
         var hintProvider = new HintProvider();
-        var (puzzle, solution) = generator.Generate();
+        var (puzzle, solution) = generator.Generate(Difficulty.Hard);
 
         var emptyCountBefore = CountEmptyCells(puzzle);
         var command = new HintCommand(puzzle, solution, hintProvider);

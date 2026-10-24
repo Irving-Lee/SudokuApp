@@ -47,9 +47,11 @@ public sealed class GameController
     {
         _display.ShowWelcome();
 
-        // Generate puzzle
-        var (puzzle, solution) = _puzzleGenerator.Generate();
+        // Let user select difficulty
+        var difficulty = _display.SelectDifficulty();
 
+        // Generate puzzle
+        var (puzzle, solution) = _puzzleGenerator.Generate(difficulty);
         _display.ShowMessage("Here is your puzzle:");
         _display.DisplayGrid(puzzle);
 

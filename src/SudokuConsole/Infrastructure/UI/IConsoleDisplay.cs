@@ -1,4 +1,5 @@
 using SudokuConsole.Domain.Models;
+using SudokuConsole.Application.Services;
 
 namespace SudokuConsole.Infrastructure.UI;
 
@@ -40,4 +41,11 @@ public interface IConsoleDisplay
     /// </summary>
     /// <returns>True if the user wants to play again, false otherwise.</returns>
     bool PromptPlayAgain();
+
+    /// <summary>
+    /// Prompts the user to select a difficulty level.
+    /// </summary>
+    /// <returns>The selected difficulty.</returns>
+    Difficulty SelectDifficulty();
+
 }
