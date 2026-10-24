@@ -108,4 +108,22 @@ public sealed class ConsoleDisplay : IConsoleDisplay
         }
     }
 
+    public void ShowLeaderboard(IReadOnlyList<GameScore> scores, Difficulty difficulty)
+    {
+        Console.WriteLine();
+        Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        Console.WriteLine("           LEADERBOARD");
+        Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        Console.WriteLine(" Rank  Time     Mistakes  Player");
+        Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        for (int i = 0; i < scores.Count; i++)
+        {
+            var score = scores[i];
+            Console.WriteLine($"  {i + 1,2}.  {score.SolveTime:mm\\:ss}     {score.Mistakes,3}      {score.PlayerName}");
+        }
+
+        Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        Console.WriteLine();
+    }
 }

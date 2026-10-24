@@ -2,12 +2,17 @@
 using SudokuConsole.Infrastructure.UI;
 using SudokuConsole.Presentation;
 
-// Create services (manual dependency injection)
 var display = new ConsoleDisplay();
 var puzzleGenerator = new PuzzleGenerator();
 var validator = new SudokuValidator();
 var hintProvider = new HintProvider();
+var leaderboard = new LeaderboardService();
 
-// Create and run game controller
-var controller = new GameController(display, puzzleGenerator, validator, hintProvider);
+var controller = new GameController(
+    display,
+    puzzleGenerator,
+    validator,
+    hintProvider,
+    leaderboard);
+
 controller.Run();

@@ -1,17 +1,16 @@
-# 📝 **DOCUMENTATION: README.md**
-
 ```markdown
 # Sudoku Console Game
 
-> A production-ready, TDD-driven command-line Sudoku implementation in C# demonstrating clean architecture, SOLID principles, and comprehensive testing.
+> A production-ready, TDD-driven command-line Sudoku implementation in C# demonstrating clean architecture, SOLID principles, puzzle generation, difficulty selection, timer tracking, mistake counting, local leaderboard persistence, and comprehensive testing.
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - **.NET 8.0 SDK or later**
-- Any OS (Windows, Linux, macOS)
+- Any OS: Windows, Linux, macOS
 
 ### Build & Run
 
@@ -33,22 +32,42 @@ dotnet test /p:CollectCoverage=true
 ```
 
 ### Expected Output
-```
+
+```text
 Welcome to Sudoku!
+
+Select difficulty:
+1. Easy (40 clues)
+2. Medium (35 clues)
+3. Hard (30 clues)
+
+Enter choice (1-3): 2
 
 Here is your puzzle:
     1 2 3 4 5 6 7 8 9
-  A _ _ 2 _ _ _ _ _ _
-  B 3 _ 1 _ 5 _ _ 8 4
-  C _ 9 _ _ _ _ _ 3 _
-  ...
+  A _ 3 _ _ 7 _ _ _ _
+  B 6 _ _ 1 9 5 _ _ _
+  C _ 9 8 _ _ _ _ 6 _
 
 Enter command (e.g., A3 4, C5 clear, hint, check, quit):
+
 ```
 
 ---
 
 ## 🎮 How to Play
+
+### Difficulty Selection
+
+At the start of each game, choose a difficulty:
+
+| Difficulty | Pre-filled Cells | Description |
+|-----------|------------------|-------------|
+| Easy | 40 | More clues, easier to solve |
+| Medium | 35 | Balanced puzzle |
+| Hard | 30 | Fewer clues, more challenging |
+
+The difficulty controls the number of pre-filled cells. It does not currently use a human-solving complexity model.
 
 ### Commands
 
@@ -59,27 +78,49 @@ Enter command (e.g., A3 4, C5 clear, hint, check, quit):
 | `hint` | Request a hint | `hint` |
 | `check` | Validate current grid | `check` |
 | `quit` | Exit the game | `quit` |
+| Timer | Tracks elapsed time | — |
+| Mistake Counter | Counts failed `check` validations and ends the game after 5 mistakes | — |
+| Local Leaderboard | Saves completed game scores locally by difficulty | — |
+| Hints | Reveals a correct value for an empty cell without modifying the grid | — |
 
 ### Coordinate System
-- **Rows**: A-I (top to bottom)
-- **Columns**: 1-9 (left to right)
+- **Rows**: A–I (top to bottom)
+- **Columns**: 1–9 (left to right)
 - **Example**: `E5` = Row E, Column 5 (center cell)
 
 ### Game Rules
-- ✅ Each row must contain numbers 1-9 without duplicates
-- ✅ Each column must contain numbers 1-9 without duplicates
-- ✅ Each 3×3 subgrid must contain numbers 1-9 without duplicates
+- ✅ Each row must contain numbers 1–9 without duplicates
+- ✅ Each column must contain numbers 1–9 without duplicates
+- ✅ Each 3×3 subgrid must contain numbers 1–9 without duplicates
 - ✅ Pre-filled cells cannot be modified
 - ✅ Game ends when the grid is completely and correctly filled
 
 ---
 
+## 🏆 Leaderboard
+
+When a puzzle is completed successfully, the game asks for a player name and saves the result locally.
+
+Leaderboard ranking is based on:
+
+1. Fastest solve time
+2. Fewest mistakes
+
+Scores are grouped by difficulty.
+
+A local runtime file is created:
+
+```text
+leaderboard.json
+```
+
 ## 🏗️ Architecture Overview
 
 ### Design Philosophy
-**Domain-Driven Design** with **Command Pattern** for user actions and **Strategy Pattern** for validation rules.
 
-```
+The project uses a layered architecture with clear separation of concerns.
+
+```text
 ┌─────────────────────────────────────────┐
 │   Presentation (GameController)         │  ← Orchestrates game loop
 ├─────────────────────────────────────────┤
@@ -93,37 +134,41 @@ Enter command (e.g., A3 4, C5 clear, hint, check, quit):
 
 ### Key Patterns Used
 
-| Pattern | Where | Why |
-|---------|-------|-----|
-| **Command Pattern** | User actions (PlaceNumber, Hint, Check) | Encapsulation, testability, extensibility (OCP) |
-| **Strategy Pattern** | Validation rules (Row/Column/Subgrid) | Independent validation logic, easy to test |
-| **Value Objects** | Coordinate | Immutability, type safety, prevents primitive obsession |
-| **Factory Pattern** | CommandFactory | Centralized input parsing, SRP |
+| Pattern                     | Where                  | Why                                       |
+| --------------------------- | ---------------------- | ----------------------------------------- |
+| Command Pattern             | User actions           | Encapsulation, testability, extensibility |
+| Factory Pattern             | CommandFactory         | Centralized input parsing                 |
+| Value Object                | Coordinate             | Type safety and immutability              |
+| Manual Dependency Injection | Program/GameController | Simplicity without container overhead     |
 
 ---
 
+
 ## 📊 Project Structure
 
-```
+
+````markdown
 SudokuConsole/
-├── README.md                    ← You are here
-├── ARCHITECTURE.md              ← Detailed design documentation
+├── README.md
 ├── .gitignore
 ├── SudokuConsole.sln
 │
 ├── src/
 │   └── SudokuConsole/
-│       ├── Domain/                      ← Core business logic
+│       ├── Domain/
 │       │   └── Models/
-│       │       ├── Coordinate.cs        ← Immutable value object
-│       │       ├── Cell.cs              ← Single cell (value + pre-filled flag)
-│       │       └── Grid.cs              ← 9×9 Sudoku board
+│       │       ├── Coordinate.cs
+│       │       ├── Cell.cs
+│       │       └── Grid.cs
 │       │
-│       ├── Application/                 ← Use cases & services
+│       ├── Application/
 │       │   ├── Services/
-│       │   │   ├── IPuzzleGenerator.cs / PuzzleGenerator.cs
-│       │   │   ├── ISudokuValidator.cs / SudokuValidator.cs
-│       │   │   └── IHintProvider.cs / HintProvider.cs
+│       │   │   ├── Difficulty.cs
+│       │   │   ├── PuzzleGenerator.cs
+│       │   │   ├── SudokuValidator.cs
+│       │   │   ├── HintProvider.cs
+│       │   │   ├── LeaderboardService.cs
+│       │   │   └── GameScore.cs
 │       │   │
 │       │   └── Commands/
 │       │       ├── ICommand.cs
@@ -133,44 +178,43 @@ SudokuConsole/
 │       │       ├── HintCommand.cs
 │       │       ├── CheckCommand.cs
 │       │       ├── QuitCommand.cs
+│       │       ├── InvalidCommand.cs
 │       │       └── CommandFactory.cs
 │       │
-│       ├── Infrastructure/              ← External concerns
+│       ├── Infrastructure/
 │       │   └── UI/
 │       │       ├── IConsoleDisplay.cs
 │       │       └── ConsoleDisplay.cs
 │       │
 │       ├── Presentation/
-│       │   └── GameController.cs        ← Main game loop
+│       │   └── GameController.cs
 │       │
-│       └── Program.cs                   ← Entry point
+│       └── Program.cs
 │
 ├── tests/
 │   └── SudokuConsole.Tests/
-│       ├── Domain/                      ← 90 tests
-│       ├── Application/                 ← 63 tests
+│       ├── Domain/
+│       ├── Application/
 │       │   ├── Services/
 │       │   └── Commands/
-│       └── Integration/                 ← Reserved for E2E tests
+│       └── Integration/
 │
 └── docs/
     ├── ARCHITECTURE.md
-    └── adr/                             ← Architecture Decision Records
-        ├── 0001-command-pattern.md
-        ├── 0002-puzzle-generation.md
-        └── 0003-validation-strategy.md
-```
+    └── adr/
+````
 
 ---
 
 ## 🧪 Testing
 
 ### Test Coverage Summary
-```
-Total Tests: 153 passing ✅
-- Domain Layer: 90 tests (Coordinate, Cell, Grid)
-- Application Layer: 63 tests (Services + Commands)
-- Test Coverage: ~91% line coverage, ~87% branch coverage
+```text
+Total Tests: 156 passing ✅
+- Domain Layer: Coordinate, Cell, Grid
+- Application Services: Puzzle generation, validation, hints, leaderboard-ready game services
+- Commands: Place number, clear cell, hint, check, quit, invalid input, command parsing
+- Difficulty generation: Easy/Medium/Hard clue-count tests
 ```
 
 ### Test Categories
@@ -229,48 +273,96 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 - **Approach**: Constructor injection with interfaces for testability
 - **Benefit**: Demonstrates SOLID principles without external dependencies
 
+
+#### 7. **Difficulty by Clue Count**
+- **Decision**: Difficulty is determined by the number of pre-filled cells.
+- **Mapping**:
+  - Easy: 40 clues
+  - Medium: 35 clues
+  - Hard: 30 clues
+- **Rationale**: This keeps generation fast, deterministic, and simple while providing a meaningful difference between difficulties.
+- **Trade-off**: Difficulty is not calculated using advanced human-solving techniques.
+
+#### 8. **Timer and Leaderboard**
+- **Decision**: Track solve time and save completed scores to a local JSON leaderboard.
+- **Rationale**: Adds replay value and lightweight progression without requiring a database or online service.
+- **Trade-off**: Leaderboard data is local to the machine and not shared between users.
+
+#### 9. **Mistake Counter**
+- **Decision**: Mistakes are counted when the player runs `check` and the validator finds a rule violation.
+- **Rationale**: This preserves the original optimistic validation design where moves are accepted first and rule validation is explicitly requested.
+- **Trade-off**: A wrong-but-valid placement is not counted as a mistake until it creates a detectable rule violation or prevents completion.
+
 ---
 
-### 📝 **Assumptions (Out of Scope)**
+## 📝 Assumptions and Out of Scope
 
-The following features were **deliberately excluded** as they were not explicitly required by the specification and would add complexity without clear value for this MVP:
+The following features were deliberately excluded because they were not explicitly required by the original specification or would add complexity beyond the current scope.
 
-#### **Not Implemented**
-❌ **Unique Solution Verification**  
-   - Spec doesn't require it
-   - Would add 200-500ms per puzzle generation
-   - Any solvable puzzle with 30 clues is acceptable for MVP
+### Not Implemented
 
-❌ **Multiple Violation Reporting**  
-   - Spec examples show single violation messages only
-   - Validation reports first found violation (priority: Row → Column → Subgrid)
+#### ❌ Unique Solution Verification
 
-❌ **Advanced Hint Algorithms**  
-   - Random empty cell selection is sufficient
-   - Strategic hints (e.g., naked/hidden singles) are out of scope
+- The original specification does not require unique-solution validation.
+- The generator creates valid solvable puzzles but does not prove there is only one possible solution.
+- Adding unique-solution verification would require a solver that counts solutions and would increase generation complexity.
 
-❌ **Difficulty Levels**  
-   - All puzzles have exactly 30 clues
-   - Easy/Medium/Hard classification not required
+#### ❌ Multiple Violation Reporting
 
-❌ **Full DI Container** (e.g., Microsoft.Extensions.DependencyInjection)  
-   - Manual constructor injection demonstrates SOLID without framework overhead
+- The specification examples show a single violation message.
+- Validation reports the first rule violation found.
+- Violation priority is: Row → Column → Subgrid.
 
-❌ **Color-Coded Console Output**  
-   - Nice-to-have enhancement, not in spec
-   - ASCII output meets requirements
+#### ❌ Advanced Hint Algorithms
 
-❌ **Extensive Logging Infrastructure**  
-   - Console app doesn't require logging
-   - Errors are handled via command results
+- The hint feature reveals one correct value for an empty cell.
+- It does not explain solving techniques.
+- Strategic hints such as naked singles, hidden singles, pairs, or X-wing are out of scope.
 
-❌ **Undo/Redo Functionality**  
-   - Not in spec, can be added later via Command pattern history
+#### ❌ Advanced Difficulty Rating
 
-❌ **Save/Load Game State**  
-   - Not required for MVP
-   - No persistence layer needed
+- Difficulty is currently based on the number of pre-filled cells:
+  - Easy: 40 clues
+  - Medium: 35 clues
+  - Hard: 30 clues
+- The app does not analyze human-solving complexity.
+- Techniques such as naked pairs, hidden singles, X-wing, or solving-depth scoring are not used.
 
+#### ❌ Online Leaderboard / Cloud Sync
+
+- Scores are stored locally in `leaderboard.json`.
+- There is no server-side leaderboard, database, account system, or cloud sync.
+
+#### ❌ Save/Load In-Progress Game State
+
+- The app does not currently save or resume unfinished puzzles.
+- Only completed scores are persisted to the local leaderboard.
+- Full game-state persistence is out of scope.
+
+#### ❌ Undo/Redo Functionality
+
+- Undo/redo is not part of the original specification.
+- The Command Pattern makes this a natural future enhancement.
+
+#### ❌ Notes / Pencil Marks
+
+- Candidate notes are not currently supported.
+- This would require extending the `Cell` model, command parsing, and grid display format.
+
+#### ❌ Color-Coded Console Output
+
+- Console output is plain text.
+- Color-coded display for givens, user entries, hints, and errors is a possible future enhancement.
+
+#### ❌ Full Dependency Injection Container
+
+- The app uses manual constructor injection.
+- A full DI container such as `Microsoft.Extensions.DependencyInjection` was avoided to keep the console app lightweight.
+
+#### ❌ Extensive Logging Infrastructure
+
+- The app does not include file-based or structured logging.
+- User-facing command results and validation messages are sufficient for the current scope.
 ---
 
 ### 🔧 **Technical Assumptions**
@@ -287,15 +379,13 @@ The following features were **deliberately excluded** as they were not explicitl
 
 If this project were to evolve, potential additions include:
 
-- [ ] Difficulty levels (Easy = 38 clues, Medium = 32, Hard = 28)
-- [ ] Unique solution verification for Hard mode
-- [ ] Undo/Redo commands (Command pattern supports this naturally)
-- [ ] Timer and scoring system
-- [ ] Save/Load game state (JSON serialization)
-- [ ] Color-coded terminal output (ANSI escape codes)
-- [ ] Hint quality levels (strategic vs. random)
-- [ ] Multiple violation reporting mode
-- [ ] API/HTTP interface for web integration
+- [ ] Online leaderboard or cloud sync
+- [ ] Advanced difficulty analysis based on solving techniques
+- [ ] Undo/Redo functionality
+- [ ] Save/Load game state
+- [ ] Notes/Pencil marks
+- [ ] Color-coded terminal output
+- [ ] Strategic hint explanations
 
 ---
 
@@ -325,6 +415,13 @@ If this project were to evolve, potential additions include:
 - **I**nterface Segregation: Small, focused interfaces
 - **D**ependency Inversion: Depends on abstractions, not concretions
 
+## Recent Enhancements
+
+- Added difficulty selection: Easy, Medium, Hard
+- Added solve timer
+- Added mistake counter with game-over threshold
+- Added local leaderboard saved to `leaderboard.json`
+
 ---
 
 ## 📄 License
@@ -338,6 +435,3 @@ This project is a take-home coding assessment. All rights reserved.
 Developed as a demonstration of production-ready C# development practices, including TDD, clean architecture, and SOLID principles.
 
 **Assessment Submission**: Irving Lee - 24/10/26
-```
-
----

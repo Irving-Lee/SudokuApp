@@ -48,4 +48,10 @@ public interface IConsoleDisplay
     /// <returns>The selected difficulty.</returns>
     Difficulty SelectDifficulty();
 
+    /// <summary>
+    /// Displays the leaderboard for a difficulty level.
+    /// </summary>
+    /// <param name="scores">The scores to display.</param>
+    /// <param name="difficulty">The selected difficulty.</param>
+    void ShowLeaderboard(IReadOnlyList<GameScore> scores, Difficulty difficulty);
 }
