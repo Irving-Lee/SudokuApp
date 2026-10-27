@@ -4,7 +4,7 @@
 
 ## Context
 
-Must generate valid Sudoku puzzles with exactly 30 pre-filled cells on demand, within 5 seconds, with sufficient variety.
+Must generate valid Sudoku puzzles on demand, within 5 seconds, with sufficient variety. The game supports three difficulty levels with different clue counts.
 
 ## Decision
 
@@ -14,7 +14,7 @@ Use **transformation-based generation** instead of backtracking:
    - Digit permutation (9! = 362,880 combinations)
    - Row swaps within bands (6³ = 216 combinations)
    - Column swaps within stacks (6³ = 216 combinations)
-3. Select 30 clues: guarantee ≥1 per row/column, then random fill
+3. Select clues based on difficulty (40 for Easy, 35 for Medium, 30 for Hard): guarantee ≥1 per row/column, then random fill
 
 **Total variety**: ~16 billion unique solutions
 

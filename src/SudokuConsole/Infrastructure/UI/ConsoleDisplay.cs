@@ -58,6 +58,13 @@ public sealed class ConsoleDisplay : IConsoleDisplay
     }
 
     /// <inheritdoc />
+    public string ReadPlayerName()
+    {
+        Console.Write("Enter your name: ");
+        return Console.ReadLine()?.Trim() ?? string.Empty;
+    }
+
+    /// <inheritdoc />
     public void ShowWinMessage()
     {
         Console.WriteLine();
@@ -112,7 +119,7 @@ public sealed class ConsoleDisplay : IConsoleDisplay
     {
         Console.WriteLine();
         Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        Console.WriteLine("           LEADERBOARD");
+        Console.WriteLine($"           {difficulty.ToString().ToUpperInvariant()} LEADERBOARD");
         Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         Console.WriteLine(" Rank  Time     Mistakes  Player");
         Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");

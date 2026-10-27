@@ -1,7 +1,8 @@
+using System.Diagnostics;
 using SudokuConsole.Application.Commands;
 using SudokuConsole.Application.Services;
+using SudokuConsole.Domain.Models;
 using SudokuConsole.Infrastructure.UI;
-using System.Diagnostics;
 
 namespace SudokuConsole.Presentation;
 
@@ -50,27 +51,23 @@ public sealed class GameController
     {
         _display.ShowWelcome();
 
-        // Let user select difficulty
         var difficulty = _display.SelectDifficulty();
 
-        // Generate puzzle
         var (puzzle, solution) = _puzzleGenerator.Generate(difficulty);
         _display.ShowMessage("Here is your puzzle:");
         _display.DisplayGrid(puzzle);
-        // Start timer
+
         var timer = Stopwatch.StartNew();
         var mistakes = 0;
         const int maxMistakes = 5;
         var commandFactory = new CommandFactory(puzzle, solution, _validator, _hintProvider);
 
-        // Game loop
         while (true)
         {
             var input = _display.ReadCommand();
             var command = commandFactory.CreateCommand(input);
             var result = command.Execute();
 
-            // Display message
             _display.ShowMessage(result.Message);
 
             // Track mistakes if check command found violations
@@ -86,95 +83,86 @@ public sealed class GameController
                 }
             }
 
-            // Redisplay grid if needed
             if (result.ShouldRedisplayGrid)
             {
                 _display.ShowMessage("Current grid:");
                 _display.DisplayGrid(puzzle);
             }
 
-            // Check for quit
             if (result.ShouldQuit)
             {
-                return false; // Don't play again
+                return false;
             }
 
-            // Check for win condition
-            if (result.Success && puzzle.IsComplete)
+            if (result.Success && puzzle.IsComplete && _validator.Validate(puzzle).IsValid)
             {
-                var validationResult = _validator.Validate(puzzle);
-                if (validationResult.IsValid)
-                {
-                    _display.DisplayGrid(puzzle);
-                    _display.ShowWinMessage();
-                    
-                    // Stop timer and display elapsed time
-                    timer.Stop();
-                    _display.ShowMessage($"Solved in {timer.Elapsed:mm\\:ss}!");
-                    
-                    // Display mistake stats
-                    if (mistakes > 0)
-                    {
-                        _display.ShowMessage($"Mistakes made: {mistakes}");
-                    }
-                    else
-                    {
-                        _display.ShowMessage("Perfect solve! No mistakes.");
-                    }
-                    
-                    // Ask for player name
-                    Console.Write("Enter your name: ");
-                    var playerName = Console.ReadLine()?.Trim();
-                    if (string.IsNullOrEmpty(playerName))
-                    {
-                        playerName = "Player";
-                    }
-                    
-                    // Save score
-                    var score = new GameScore
-                    {
-                        PlayerName = playerName,
-                        Difficulty = difficulty,
-                        SolveTime = timer.Elapsed,
-                        Mistakes = mistakes,
-                        CompletedAt = DateTime.Now
-                    };
-                    
-                    _leaderboard.SaveScore(score);
-                    _display.ShowMessage("Score saved!");
-                    
-                    // Calculate and show rank
-                    var allScores = _leaderboard.GetTopScores(difficulty, 100);
-                    var yourRank = -1;
-                    
-                    for (int i = 0; i < allScores.Count; i++)
-                    {
-                        var s = allScores[i];
-                        if (s.PlayerName == playerName && 
-                            s.SolveTime == score.SolveTime && 
-                            s.Mistakes == score.Mistakes)
-                        {
-                            yourRank = i + 1;
-                            break;
-                        }
-                    }
-                    
-                    if (yourRank > 0 && yourRank <= 10)
-                    {
-                        _display.ShowMessage($"🎉 You placed #{yourRank} on the {difficulty} leaderboard!");
-                    }
-                    else if (yourRank > 10)
-                    {
-                        _display.ShowMessage($"You ranked #{yourRank} on the {difficulty} leaderboard.");
-                    }
-                    
-                    // Show top 5
-                    var topScores = _leaderboard.GetTopScores(difficulty, 5);
-                    _display.ShowLeaderboard(topScores, difficulty);
-                    
-                     return _display.PromptPlayAgain();
-                }
+                return CompleteGame(puzzle, difficulty, timer, mistakes);
             }
         }
+    }
+
+    private bool CompleteGame(Grid puzzle, Difficulty difficulty, Stopwatch timer, int mistakes)
+    {
+        _display.DisplayGrid(puzzle);
+        _display.ShowWinMessage();
+
+        timer.Stop();
+        _display.ShowMessage($"Solved in {timer.Elapsed:mm\\:ss}!");
+
+        if (mistakes > 0)
+        {
+            _display.ShowMessage($"Mistakes made: {mistakes}");
+        }
+        else
+        {
+            _display.ShowMessage("Perfect solve! No mistakes.");
+        }
+
+        var playerName = _display.ReadPlayerName();
+        if (string.IsNullOrEmpty(playerName))
+        {
+            playerName = "Player";
+        }
+
+        var score = new GameScore
+        {
+            PlayerName = playerName,
+            Difficulty = difficulty,
+            SolveTime = timer.Elapsed,
+            Mistakes = mistakes,
+            CompletedAt = DateTime.Now
+        };
+
+        _leaderboard.SaveScore(score);
+        _display.ShowMessage("Score saved!");
+
+        var scores = _leaderboard.GetTopScores(difficulty, 100);
+        var rank = -1;
+
+        for (var index = 0; index < scores.Count; index++)
+        {
+            var entry = scores[index];
+            if (entry.PlayerName == playerName &&
+                entry.SolveTime == score.SolveTime &&
+                entry.Mistakes == score.Mistakes)
+            {
+                rank = index + 1;
+                break;
+            }
+        }
+
+        if (rank > 0 && rank <= 10)
+        {
+            _display.ShowMessage($"🎉 You placed #{rank} on the {difficulty} leaderboard!");
+        }
+        else if (rank > 10)
+        {
+            _display.ShowMessage($"You ranked #{rank} on the {difficulty} leaderboard.");
+        }
+
+        var topScores = _leaderboard.GetTopScores(difficulty, 5);
+        _display.ShowLeaderboard(topScores, difficulty);
+
+        return _display.PromptPlayAgain();
     }
 }

@@ -32,6 +32,12 @@ public interface IConsoleDisplay
     string ReadCommand();
 
     /// <summary>
+    /// Prompts for and reads the player's name.
+    /// </summary>
+    /// <returns>The entered name, or an empty string if no name was entered.</returns>
+    string ReadPlayerName();
+
+    /// <summary>
     /// Displays a win message.
     /// </summary>
     void ShowWinMessage();

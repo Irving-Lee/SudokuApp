@@ -49,37 +49,16 @@ public readonly record struct Coordinate
 
         input = input.Trim().ToUpperInvariant();
 
-        // Must be exactly 2 characters
-        if (input.Length != 2)
+        if (input.Length != 2 ||
+            input[0] < 'A' || input[0] > 'I' ||
+            input[1] < '1' || input[1] > '9')
         {
             throw new ArgumentException(
                 $"Invalid coordinate format: '{input}'. Expected format: [A-I][1-9] (e.g., A1, E5, I9).",
                 nameof(input));
         }
 
-        char rowChar = input[0];
-        char colChar = input[1];
-
-        // Validate row character (A-I)
-        if (rowChar < 'A' || rowChar > 'I')
-        {
-            throw new ArgumentException(
-                $"Invalid coordinate format: '{input}'. Expected format: [A-I][1-9] (e.g., A1, E5, I9).",
-                nameof(input));
-        }
-
-        // Validate column character (1-9)
-        if (colChar < '1' || colChar > '9')
-        {
-            throw new ArgumentException(
-                $"Invalid coordinate format: '{input}'. Expected format: [A-I][1-9] (e.g., A1, E5, I9).",
-                nameof(input));
-        }
-
-        int row = rowChar - 'A';      // 'A' = 0, 'B' = 1, ..., 'I' = 8
-        int column = colChar - '1';   // '1' = 0, '2' = 1, ..., '9' = 8
-
-        return new Coordinate(row, column);
+        return new Coordinate(input[0] - 'A', input[1] - '1');
     }
 
     /// <summary>
@@ -97,7 +76,6 @@ public readonly record struct Coordinate
     {
         if (index < MinIndex || index > MaxIndex)
         {
-            // Capitalize first letter for display in error message
             string displayName = char.ToUpper(parameterName[0]) + parameterName.Substring(1);
             
             throw new ArgumentException(

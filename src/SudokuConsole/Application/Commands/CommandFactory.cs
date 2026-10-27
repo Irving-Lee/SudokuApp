@@ -8,6 +8,9 @@ namespace SudokuConsole.Application.Commands;
 /// </summary>
 public sealed class CommandFactory
 {
+    private const string InvalidCommandFormatMessage =
+        "Invalid command format. Enter command (e.g., A3 4, C5 clear, hint, check, quit).";
+
     private readonly Grid _puzzle;
     private readonly Grid _solution;
     private readonly ISudokuValidator _validator;
@@ -37,7 +40,7 @@ public sealed class CommandFactory
     {
         if (string.IsNullOrWhiteSpace(input))
         {
-            return new InvalidCommand("Invalid command format. Enter command (e.g., A3 4, C5 clear, hint, check, quit).");
+            return new InvalidCommand(InvalidCommandFormatMessage);
         }
 
         input = input.Trim();
@@ -63,7 +66,7 @@ public sealed class CommandFactory
 
         if (parts.Length != 2)
         {
-            return new InvalidCommand("Invalid command format. Enter command (e.g., A3 4, C5 clear, hint, check, quit).");
+            return new InvalidCommand(InvalidCommandFormatMessage);
         }
 
         var cellRef = parts[0];

@@ -15,28 +15,24 @@ public class SudokuValidator : ISudokuValidator
     /// <returns>A validation result indicating success or the first violation found.</returns>
     public ValidationResult Validate(Grid grid)
     {
-        // Check rows first
         var rowViolation = ValidateRows(grid);
-        if (rowViolation != null)
+        if (rowViolation is not null)
         {
             return rowViolation;
         }
 
-        // Check columns second
         var columnViolation = ValidateColumns(grid);
-        if (columnViolation != null)
+        if (columnViolation is not null)
         {
             return columnViolation;
         }
 
-        // Check subgrids third
         var subgridViolation = ValidateSubgrids(grid);
-        if (subgridViolation != null)
+        if (subgridViolation is not null)
         {
             return subgridViolation;
         }
 
-        // If no violations, return success
         return ValidationResult.Success();
     }
 
@@ -50,26 +46,20 @@ public class SudokuValidator : ISudokuValidator
             {
                 var cell = grid.GetCell(new Coordinate(row, col));
 
-                // Skip empty cells
-                if (cell.IsEmpty)
+                if (cell.Value is not int value)
                 {
                     continue;
                 }
 
-                int value = cell.Value!.Value;
-
-                // Check for duplicate
-                if (seen.Contains(value))
+                if (!seen.Add(value))
                 {
                     char rowLetter = (char)('A' + row);
                     return ValidationResult.Failure($"Number {value} already exists in Row {rowLetter}.");
                 }
-
-                seen.Add(value);
             }
         }
 
-        return null; // No violations found
+        return null;
     }
 
     private ValidationResult? ValidateColumns(Grid grid)
@@ -82,38 +72,30 @@ public class SudokuValidator : ISudokuValidator
             {
                 var cell = grid.GetCell(new Coordinate(row, col));
 
-                // Skip empty cells
-                if (cell.IsEmpty)
+                if (cell.Value is not int value)
                 {
                     continue;
                 }
 
-                int value = cell.Value!.Value;
-
-                // Check for duplicate
-                if (seen.Contains(value))
+                if (!seen.Add(value))
                 {
-                    int columnNumber = col + 1; // Convert 0-based to 1-based
+                    int columnNumber = col + 1;
                     return ValidationResult.Failure($"Number {value} already exists in Column {columnNumber}.");
                 }
-
-                seen.Add(value);
             }
         }
 
-        return null; // No violations found
+        return null;
     }
 
     private ValidationResult? ValidateSubgrids(Grid grid)
     {
-        // There are 9 subgrids (3x3 arrangement)
         for (int subgridRow = 0; subgridRow < 3; subgridRow++)
         {
             for (int subgridCol = 0; subgridCol < 3; subgridCol++)
             {
                 var seen = new HashSet<int>();
 
-                // Check all 9 cells in this subgrid
                 for (int cellRow = 0; cellRow < 3; cellRow++)
                 {
                     for (int cellCol = 0; cellCol < 3; cellCol++)
@@ -123,26 +105,20 @@ public class SudokuValidator : ISudokuValidator
 
                         var cell = grid.GetCell(new Coordinate(row, col));
 
-                        // Skip empty cells
-                        if (cell.IsEmpty)
+                        if (cell.Value is not int value)
                         {
                             continue;
                         }
 
-                        int value = cell.Value!.Value;
-
-                        // Check for duplicate
-                        if (seen.Contains(value))
+                        if (!seen.Add(value))
                         {
                             return ValidationResult.Failure($"Number {value} already exists in the same 3×3 subgrid.");
                         }
-
-                        seen.Add(value);
                     }
                 }
             }
         }
 
-        return null; // No violations found
+        return null;
     }
 }

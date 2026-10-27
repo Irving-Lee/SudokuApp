@@ -8,7 +8,7 @@ namespace SudokuConsole.Application.Services;
 public interface IPuzzleGenerator
 {
     /// <summary>
-    /// Generates a puzzle with exactly 30 pre-filled cells and its complete solution.
+    /// Generates a puzzle with 40, 35, or 30 clues, depending on difficulty, and its complete solution.
     /// </summary>
     (Grid Puzzle, Grid Solution) Generate(Difficulty difficulty);
 }
