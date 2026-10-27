@@ -1,7 +1,7 @@
 ```markdown
 # Sudoku Console Game
 
-> A production-ready, TDD-driven command-line Sudoku implementation in C# demonstrating clean architecture, SOLID principles, puzzle generation, difficulty selection, timer tracking, mistake counting, local leaderboard persistence, and comprehensive testing.
+> A C# command-line Sudoku game with difficulty-based puzzle generation, validation commands, hints, solve-time tracking, and a local leaderboard.
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### Prerequisites
 
-- **.NET 8.0 SDK or later**
+- **.NET 10.0 SDK or later**
 - Any OS: Windows, Linux, macOS
 
 ### Build & Run
@@ -27,11 +27,13 @@ dotnet run --project src/SudokuConsole
 # Run all tests
 dotnet test
 
-# Run tests with coverage (optional)
-dotnet test /p:CollectCoverage=true
+# Run tests and collect coverage (optional)
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
-### Expected Output
+### Example Output (excerpt)
+
+The game displays all nine rows; this excerpt shows only the first three.
 
 ```text
 Welcome to Sudoku!
@@ -48,6 +50,7 @@ Here is your puzzle:
   A _ 3 _ _ 7 _ _ _ _
   B 6 _ _ 1 9 5 _ _ _
   C _ 9 8 _ _ _ _ 6 _
+  ...
 
 Enter command (e.g., A3 4, C5 clear, hint, check, quit):
 
@@ -114,6 +117,8 @@ A local runtime file is created:
 leaderboard.json
 ```
 
+The file is stored in the application's current working directory.
+
 ## 🏗️ Architecture Overview
 
 ### Design Philosophy
@@ -149,59 +154,73 @@ The project uses a layered architecture with clear separation of concerns.
 
 ````markdown
 SudokuConsole/
+├── LICENSE
 ├── README.md
-├── .gitignore
-├── SudokuConsole.sln
-│
+├── SudokuConsole.slnx
+├── docs/
+│   ├── ARCHITECTURE.md
+│   └── adr/
+│       ├── 0001-command-pattern-for-user-actions.md
+│       ├── 0002-backtracking-puzzle-generation.md
+│       └── 0003-optimistic-validation-strategy.md
 ├── src/
 │   └── SudokuConsole/
+│       ├── Program.cs
+│       ├── Application/
+│       │   ├── Commands/
+│       │   │   ├── CheckCommand.cs
+│       │   │   ├── ClearCellCommand.cs
+│       │   │   ├── CommandFactory.cs
+│       │   │   ├── CommandResult.cs
+│       │   │   ├── HintCommand.cs
+│       │   │   ├── ICommand.cs
+│       │   │   ├── InvalidCommand.cs
+│       │   │   ├── PlaceNumberCommand.cs
+│       │   │   └── QuitCommand.cs
+│       │   └── Services/
+│       │       ├── Difficulty.cs
+│       │       ├── GameScore.cs
+│       │       ├── HintProvider.cs
+│       │       ├── HintResult.cs
+│       │       ├── IHintProvider.cs
+│       │       ├── ILeaderboardService.cs
+│       │       ├── IPuzzleGenerator.cs
+│       │       ├── ISudokuValidator.cs
+│       │       ├── LeaderboardService.cs
+│       │       ├── PuzzleGenerator.cs
+│       │       ├── SudokuValidator.cs
+│       │       └── ValidationResult.cs
 │       ├── Domain/
 │       │   └── Models/
-│       │       ├── Coordinate.cs
 │       │       ├── Cell.cs
+│       │       ├── Coordinate.cs
 │       │       └── Grid.cs
-│       │
-│       ├── Application/
-│       │   ├── Services/
-│       │   │   ├── Difficulty.cs
-│       │   │   ├── PuzzleGenerator.cs
-│       │   │   ├── SudokuValidator.cs
-│       │   │   ├── HintProvider.cs
-│       │   │   ├── LeaderboardService.cs
-│       │   │   └── GameScore.cs
-│       │   │
-│       │   └── Commands/
-│       │       ├── ICommand.cs
-│       │       ├── CommandResult.cs
-│       │       ├── PlaceNumberCommand.cs
-│       │       ├── ClearCellCommand.cs
-│       │       ├── HintCommand.cs
-│       │       ├── CheckCommand.cs
-│       │       ├── QuitCommand.cs
-│       │       ├── InvalidCommand.cs
-│       │       └── CommandFactory.cs
-│       │
 │       ├── Infrastructure/
 │       │   └── UI/
-│       │       ├── IConsoleDisplay.cs
-│       │       └── ConsoleDisplay.cs
-│       │
-│       ├── Presentation/
-│       │   └── GameController.cs
-│       │
-│       └── Program.cs
-│
+│       │       ├── ConsoleDisplay.cs
+│       │       └── IConsoleDisplay.cs
+│       └── Presentation/
+│           └── GameController.cs
 ├── tests/
 │   └── SudokuConsole.Tests/
-│       ├── Domain/
 │       ├── Application/
-│       │   ├── Services/
-│       │   └── Commands/
-│       └── Integration/
-│
-└── docs/
-    ├── ARCHITECTURE.md
-    └── adr/
+│       │   ├── Commands/
+│       │   │   ├── CheckCommandTests.cs
+│       │   │   ├── ClearCellCommandTests.cs
+│       │   │   ├── CommandFactoryTests.cs
+│       │   │   ├── HintCommandTests.cs
+│       │   │   ├── PlaceNumberCommandTests.cs
+│       │   │   └── QuitCommandTests.cs
+│       │   │
+│       │   └── Services/
+│       │       ├── HintProviderTests.cs
+│       │       ├── PuzzleGeneratorTests.cs
+│       │       └── SudokuValidatorTests.cs
+│       │
+│       └── Domain/
+│           ├── CellTests.cs
+│           ├── CoordinateTests.cs
+│           └── GridTests.cs
 ````
 
 ---
@@ -210,18 +229,16 @@ SudokuConsole/
 
 ### Test Coverage Summary
 ```text
-Total Tests: 156 passing ✅
-- Domain Layer: Coordinate, Cell, Grid
-- Application Services: Puzzle generation, validation, hints, leaderboard-ready game services
-- Commands: Place number, clear cell, hint, check, quit, invalid input, command parsing
-- Difficulty generation: Easy/Medium/Hard clue-count tests
+Tested areas:
+- Domain models: Coordinate, Cell, Grid
+- Application services: Puzzle generation, validation, hints
+- Commands: Place, clear, hint, check, quit, invalid input, command parsing
+- Difficulty generation: Easy/Medium/Hard clue counts
 ```
 
-### Test Categories
-- ✅ **Unit Tests**: All business logic components tested in isolation
-- ✅ **Parameterized Tests**: Multiple scenarios tested with `[TestCase]` attributes
-- ✅ **Edge Cases**: Invalid inputs, boundary conditions, empty/full grids
-- ✅ **Manual Testing**: End-to-end gameplay verified
+The current test project does not include dedicated tests for `GameController` or file-based leaderboard persistence.
+
+The suite also uses NUnit parameterized tests for selected inputs and boundary cases.
 
 ### Running Tests
 ```bash
@@ -234,8 +251,8 @@ dotnet test --logger "console;verbosity=detailed"
 # Run specific test class
 dotnet test --filter "FullyQualifiedName~CoordinateTests"
 
-# Run with coverage (requires coverlet)
-dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+# Run and collect coverage (requires the test project's Coverlet collector)
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
 ---
@@ -251,11 +268,11 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
 #### 2. **Puzzle Generation Algorithm**
 - **Algorithm**: Randomized valid solution via digit permutation and row/column swaps within bands/stacks
-- **Performance**: < 50ms average (well under 5-second requirement)
+- **Performance**: Uses transformations of a valid solution rather than a backtracking search; no benchmark is included.
 - **Trade-off**: Didn't implement full backtracking solver or unique-solution verification (see assumptions below)
 
 #### 3. **Clue Selection Strategy**
-- **Decision**: Guarantee at least one clue per row and column, then random fill to exactly 30
+- **Decision**: Guarantee at least one clue per row and column, then randomly fill to the count for the selected difficulty (40 Easy, 35 Medium, 30 Hard)
 - **Rationale**: Improves playability without over-constraining
 - **Not in spec**: This is a quality enhancement
 
@@ -280,7 +297,7 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
   - Easy: 40 clues
   - Medium: 35 clues
   - Hard: 30 clues
-- **Rationale**: This keeps generation fast, deterministic, and simple while providing a meaningful difference between difficulties.
+- **Rationale**: This keeps generation fast and simple while providing a meaningful difference between difficulties. The clue count is fixed for each difficulty, but generated puzzles are randomized.
 - **Trade-off**: Difficulty is not calculated using advanced human-solving techniques.
 
 #### 8. **Timer and Leaderboard**
@@ -291,7 +308,7 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 #### 9. **Mistake Counter**
 - **Decision**: Mistakes are counted when the player runs `check` and the validator finds a rule violation.
 - **Rationale**: This preserves the original optimistic validation design where moves are accepted first and rule validation is explicitly requested.
-- **Trade-off**: A wrong-but-valid placement is not counted as a mistake until it creates a detectable rule violation or prevents completion.
+- **Trade-off**: Only failed `check` commands that report rule violations increment the counter. Incorrect placements and a failed completion validation do not independently add mistakes.
 
 ---
 
@@ -304,7 +321,7 @@ The following features were deliberately excluded because they were not explicit
 #### ❌ Unique Solution Verification
 
 - The original specification does not require unique-solution validation.
-- The generator creates valid solvable puzzles but does not prove there is only one possible solution.
+- The generator provides a valid solution for each puzzle but does not prove it is the only possible solution.
 - Adding unique-solution verification would require a solver that counts solutions and would increase generation complexity.
 
 #### ❌ Multiple Violation Reporting
@@ -367,10 +384,10 @@ The following features were deliberately excluded because they were not explicit
 
 ### 🔧 **Technical Assumptions**
 
-- **Platform**: Cross-platform (.NET 8.0+, runs on Windows/Linux/macOS)
+- **Platform**: Cross-platform (.NET 10.0+, runs on Windows/Linux/macOS)
 - **Input Handling**: Case-insensitive, whitespace-tolerant (UX improvement)
-- **Error Messages**: Match spec examples exactly where provided
-- **Grid Display**: ASCII-based, matches spec format precisely
+- **Error Messages**: Follow the formats shown in the specification examples
+- **Grid Display**: Uses row labels A–I and column labels 1–9.
 - **Test Framework**: NUnit (industry standard, rich assertion library)
 
 ---
@@ -392,28 +409,19 @@ If this project were to evolve, potential additions include:
 ## 📚 Documentation
 
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Detailed technical design
-- **[ADR 0001: Command Pattern](docs/adr/0001-command-pattern.md)**
-- **[ADR 0002: Puzzle Generation](docs/adr/0002-puzzle-generation.md)**
-- **[ADR 0003: Validation Strategy](docs/adr/0003-validation-strategy.md)**
+- **[ADR 0001: Command Pattern](docs/adr/0001-command-pattern-for-user-actions.md)**
+- **[ADR 0002: Puzzle Generation](docs/adr/0002-backtracking-puzzle-generation.md)**
+- **[ADR 0003: Validation Strategy](docs/adr/0003-optimistic-validation-strategy.md)**
 
 ---
 
 ## 🛠️ Development
 
-### Code Standards
-- ✅ C# naming conventions (PascalCase for public, camelCase for private)
-- ✅ XML documentation on all public APIs
-- ✅ Max method length: ~20 lines
-- ✅ Max class size: ~200 lines
-- ✅ No magic numbers (constants defined)
-- ✅ Comprehensive error messages
-
-### SOLID Principles Demonstrated
-- **S**ingle Responsibility: Each class has one reason to change
-- **O**pen/Closed: Command pattern allows extension without modification
-- **L**iskov Substitution: All interfaces properly implemented
-- **I**nterface Segregation: Small, focused interfaces
-- **D**ependency Inversion: Depends on abstractions, not concretions
+### Implementation Practices
+- Uses common C# naming conventions.
+- Keeps command handling, domain models, services, and console presentation in separate areas.
+- Uses interfaces for key services and the console display to support substitution and testing.
+- Includes XML documentation on public APIs where it clarifies usage.
 
 ## Recent Enhancements
 
@@ -426,12 +434,12 @@ If this project were to evolve, potential additions include:
 
 ## 📄 License
 
-This project is a take-home coding assessment. All rights reserved.
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
 ## 👤 Author
 
-Developed as a demonstration of production-ready C# development practices, including TDD, clean architecture, and SOLID principles.
+Developed as a demonstration of C# application structure, command-based user actions, domain modeling, and automated testing.
 
-**Assessment Submission**: Irving Lee - 24/10/26
+**Assessment Submission**: Irving Lee - 27/10/26
