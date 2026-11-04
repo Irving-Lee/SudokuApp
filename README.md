@@ -1,4 +1,3 @@
-```markdown
 # Sudoku Console Game
 
 > A C# command-line Sudoku game with difficulty-based puzzle generation, validation commands, hints, solve-time tracking, and a local leaderboard.
